@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<!--
+    Práctica 11: Tabla de sueldos con formulario
+    --------------------------------------------
+    Descripción:
+        Un formulario captura los datos de un empleado (nombre, días
+        trabajados y antigüedad). Al enviarlo se calcula su sueldo y su
+        bono, y los datos se muestran en una tabla de 10 filas.
+
+    Funcionamiento:
+        - Al abrir la página solo se ve el formulario.
+        - Al enviar el primer empleado se genera la tabla (10 filas).
+        - Cada nuevo envío llena la siguiente fila.
+        - Al llegar a 10 empleados el formulario se bloquea.
+
+    Reglas de cálculo:
+        - Sueldo quincenal base (SQ): $15,000
+        - Sueldo = (SQ / 15) * días trabajados
+        - Bono de $1,200 si la antigüedad es mayor a 10
+        - Total = Sueldo + Bono
+-->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practica 11</title>
+
+    <style>
+        /* Tabla: bordes colapsados y ancho completo de la página */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        /* Encabezado de la tabla: fondo amarillo y texto alineado a la izquierda */
+        th {
+            background-color: yellow;
+            text-align: left;
+        }
+
+        /* Celdas de datos: fondo azul claro y altura mínima para filas vacías */
+        td {
+            background-color: #DDEBF7;
+            height: 22px;
+        }
+
+        /* Borde y espaciado interno para encabezados y celdas */
+        th, td {
+            border: 1px solid black;
+            padding: 4px 8px;
+        }
+
+        /* Columna del número de fila (#): alineada a la derecha */
+        td.num {
+            text-align: right;
+        }
+
+        /* Separación entre el formulario y la tabla */
+        form {
+            margin-bottom: 16px;
+        }
+
+        /* Cada campo (etiqueta + input) se muestra en línea con espacio a la derecha */
+        label {
+            display: inline-block;
+            margin-right: 12px;
+        }
+
+        input {
+            padding: 4px;
+        }
+
+        /* Texto del contador / aviso junto al botón */
+        #mensaje {
+            margin-left: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Formulario de captura de un empleado -->
+    <form id="formulario">
+        <!-- Nombre del empleado (texto obligatorio) -->
+        <label>Nombre:
+            <input type="text" id="nombre" required>
+        </label>
+
+        <!-- Días trabajados (número obligatorio, no negativo, admite decimales) -->
+        <label>Días Trabajados:
+            <input type="number" id="dt" min="0" step="any" required>
+        </label>
+
+        <!-- Antigüedad en años (número entero obligatorio, no negativo) -->
+        <label>Antigüedad:
+            <input type="number" id="antiguedad" min="0" step="1" required>
+        </label>
+
+        <button type="submit" id="btnAgregar">Agregar</button>
+
+        <!-- Aquí se muestra el contador de registros o el aviso de tabla completa -->
+        <span id="mensaje"></span>
+    </form>
+
+    <!-- Contenedor donde JavaScript inserta la tabla -->
+    <div id="resultado"></div>
+
+    <script>
+        // ---------- Constantes de la práctica ----------
+        const bono = 1200;      // Bono que se paga si la antigüedad es mayor a 10
+        const SQ = 15000;       // Sueldo quincenal base
+        const totalFilas = 10;  // Número de filas que tendrá la tabla
+
+        // Arreglo donde se guardan los empleados capturados (máximo 10).
+        // Cada elemento es un objeto: { nombre, dt, antiguedad, sueldo, bono, total }
+        let empleados = [];
+
+        /**
+         * dibujarTabla()
+         * Construye el HTML de la tabla completa (encabezado + 10 filas) a partir
+         * del arreglo "empleados" y lo inserta en el div #resultado.
+         * Las filas que todavía no tienen empleado se muestran vacías.
+         */
+        function dibujarTabla() {
+            // Encabezado de la tabla
+            let tabla = "<table>";
+            tabla += "<tr>";
+            tabla += "<th>#</th>";
+            tabla += "<th>Nombre</th>";
+            tabla += "<th>Días Trabajados</th>";
+            tabla += "<th>Antigüedad</th>";
+            tabla += "<th>Sueldo</th>";
+            tabla += "<th>Bono</th>";
+            tabla += "<th>Total</th>";
+            tabla += "</tr>";
+
+            // Generar las 10 filas
+            for (let i = 1; i <= totalFilas; i++) {
+                tabla += "<tr>";
+                tabla += "<td class='num'>" + i + "</td>";  // Número de fila
+
+                // Empleado que corresponde a esta fila (undefined si aún no existe)
+                let emp = empleados[i - 1];
+
+                if (emp) {
+                    // Fila con datos: se muestran los valores del empleado
+                    tabla += "<td>" + emp.nombre + "</td>";
+                    tabla += "<td>" + emp.dt + "</td>";
+                    tabla += "<td>" + emp.antiguedad + "</td>";
+                    tabla += "<td>$" + emp.sueldo.toFixed(2) + "</td>";
+                    tabla += "<td>$" + emp.bono.toFixed(2) + "</td>";
+                    tabla += "<td>$" + emp.total.toFixed(2) + "</td>";
+                } else {
+                    // Fila sin datos: seis celdas vacías
+                    tabla += "<td></td><td></td><td></td><td></td><td></td><td></td>";
+                }
+
+                tabla += "</tr>";
+            }
+
+            tabla += "</table>";
+
+            // Mostrar la tabla en la página, debajo del formulario
+            document.getElementById("resultado").innerHTML = tabla;
+        }
+
+        /**
+         * Evento "submit" del formulario.
+         * Se ejecuta cada vez que el usuario presiona "Agregar" y los campos
+         * son válidos. Calcula el sueldo, guarda al empleado y actualiza la tabla.
+         */
+        document.getElementById("formulario").addEventListener("submit", function (e) {
+            e.preventDefault(); // Evita que la página se recargue al enviar
+
+            // Si la tabla ya está llena, no se hace nada
+            if (empleados.length >= totalFilas) {
+                return;
+            }
+
+            // 1) Leer los datos capturados en el formulario
+            let nombre = document.getElementById("nombre").value;
+            let dt = parseFloat(document.getElementById("dt").value);
+            let antiguedad = parseInt(document.getElementById("antiguedad").value);
+
+            // 2) Calcular el sueldo: (sueldo quincenal / 15) * días trabajados
+            let sueldo = (SQ / 15) * dt;
+
+            // 3) Calcular el bono: solo aplica si la antigüedad es mayor a 10
+            let bonoEmpleado = 0;
+            if (antiguedad > 10) {
+                bonoEmpleado = bono;
+            }
+
+            // 4) Total a pagar = sueldo + bono
+            let st = sueldo + bonoEmpleado;
+
+            // 5) Guardar al empleado en el arreglo
+            empleados.push({
+                nombre: nombre,
+                dt: dt,
+                antiguedad: antiguedad,
+                sueldo: sueldo,
+                bono: bonoEmpleado,
+                total: st
+            });
+
+            // 6) Volver a dibujar la tabla con el nuevo registro
+            dibujarTabla();
+
+            // 7) Limpiar los campos para capturar al siguiente empleado
+            this.reset();
+
+            // 8) Actualizar el mensaje o bloquear el formulario si ya se llenó la tabla
+            if (empleados.length >= totalFilas) {
+                // Tabla completa: se deshabilitan el botón y los campos
+                document.getElementById("btnAgregar").disabled = true;
+                document.getElementById("nombre").disabled = true;
+                document.getElementById("dt").disabled = true;
+                document.getElementById("antiguedad").disabled = true;
+                document.getElementById("mensaje").textContent = "Tabla completa (10 de 10)";
+            } else {
+                // Aún hay filas libres: se muestra el contador y el cursor vuelve a "Nombre"
+                document.getElementById("mensaje").textContent = "Registros: " + empleados.length + " de " + totalFilas;
+                document.getElementById("nombre").focus();
+            }
+        });
+    </script>
+
+</body>
+</html>
